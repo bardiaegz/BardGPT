@@ -25,6 +25,10 @@ def main() -> None:
     prompt = prompt.unsqueeze(0)
     prompt = prompt.repeat(num_return_sequenecs, 1)
     prompt = prompt.to(device)
+
+    # https://arxiv.org/pdf/2203.03341 
+    # TensorFloat-32 (1 sign bits - 8 exponent bits - 10 mantissa bits (same as float16)) -> 19 bits
+    torch.set_float32_matmul_precision('high')
     model = GPT(GPTConfig(vocab_size=50_304))
     model.to(device)
     raw_model = model
@@ -42,7 +46,11 @@ def main() -> None:
             raw_model.eval()
             with torch.inference_mode():
                 while x_gen.size(1) < max_length:
-                    logits, _ = model(x_gen)
+                    # https://arxiv.org/pdf/1905.12322
+                    # https://docs.cloud.google.com/tpu/docs/bfloat16
+                    # BrainFloat-16 (1 sign bits - 8 exponent bits (same as float32) - 7 mantissa bits ) -> 16 bits
+                    with torch.autocast(device_type=device_type, dtype=torch.bfloat16):
+                        logits, _ = model(x_gen)
                     logits = logits[:, -1, :]
                     logits[:, enc.n_vocab:] = -float('inf')
                     probs = F.softmax(input=logits, dim=-1)
@@ -56,7 +64,8 @@ def main() -> None:
             raw_model.train()
         t0 = time.time()
         x, y = train_loader.next_batch()
-        logits, loss = model(x, y)
+        with torch.autocast(device_type=device_type, dtype=torch.bfloat16):
+            logits, loss = model(x, y)
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
