@@ -7,6 +7,7 @@ import torch.nn.functional as F
 class CausalSelfAttention(nn.Module):
     def __init__(self, config):
         super().__init__()
+        assert config.n_embd % config.n_head == 0, f'n_embd ({config.n_embd}) must be divisbile by n_head ({config.n_head})'
         self.c_attn = nn.Linear(config.n_embd, 3 * config.n_embd)
         self.c_proj = nn.Linear(config.n_embd, config.n_embd)
         self.c_proj.BARDGPT_SCALE_INIT = 1
@@ -14,7 +15,6 @@ class CausalSelfAttention(nn.Module):
         self.n_head = config.n_head
 
     def forward(self, x):
-        assert self.n_embd // self.n_head, f'n_embd ({self.n_embd}) must be divisbile by n_head ({self.n_head})'
         B, T, C = x.size()
         qkv = self.c_attn(x)
         q, k, v = qkv.split(self.n_embd, 2)
@@ -24,7 +24,6 @@ class CausalSelfAttention(nn.Module):
         y = F.scaled_dot_product_attention(q, k, v, is_causal=True)
         y = y.transpose(1, 2).contiguous().view(B, T, C)
         y = self.c_proj(y)
-        self.c_proj.BARDGPT_SCALE_INIT = 1
         return y
 
 class MLP(nn.Module):
@@ -33,6 +32,7 @@ class MLP(nn.Module):
         self.c_fc = nn.Linear(config.n_embd, config.expansion_factor * config.n_embd)
         self.gelu = nn.GELU(approximate='tanh')
         self.c_proj = nn.Linear(config.expansion_factor * config.n_embd, config.n_embd)
+        self.c_proj.BARDGPT_SCALE_INIT = 1
 
     def forward(self, x):
         x = self.c_fc(x)
