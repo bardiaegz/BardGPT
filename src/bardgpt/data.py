@@ -13,7 +13,7 @@ class DataLoader:
         self.tokens = torch.tensor(tokens, dtype=torch.long)
 
         print(f'loaded {len(self.tokens)} tokens.')
-        print(f'each epoch contains {len(self.tokens) // (B * T)}')
+        print(f'each epoch contains {len(self.tokens) // (B * T)} batches.')
 
         self.current_position = 0
 

@@ -24,15 +24,15 @@ def main() -> None:
     prompt = torch.tensor(prompt, dtype=torch.long)
     prompt = prompt.unsqueeze(0)
     prompt = prompt.repeat(num_return_sequenecs, 1)
-    prompt = prompt.to('mps')
+    prompt = prompt.to(device)
     model = GPT(GPTConfig(vocab_size=50_304))
-    model.to('mps') # TODO: add auto-detect device
+    model.to(device)
     raw_model = model
     use_compile = False
     if use_compile:
         model = torch.compile(model)
     optimizer = torch.optim.AdamW(raw_model.parameters(), lr=6e-4)
-    train_loader = DataLoader(B=B, T=T, device='mps')
+    train_loader = DataLoader(B=B, T=T, device=device)
 
     pbar = tqdm(range(max_step), desc='Training BardGPT', colour='#7BC621', dynamic_ncols=True)
     for step in pbar:
@@ -60,7 +60,10 @@ def main() -> None:
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
-        torch.mps.synchronize()
+        if device_type == 'cuda':
+            torch.cuda.synchronize()
+        elif device_type == 'mps':
+            torch.mps.synchronize()
         t1 = time.time()
         dt = t1 - t0
         token_processed = train_loader.B * train_loader.T

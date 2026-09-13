@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+import torch
 
 class colors:
     HEADER = '\033[95m'
@@ -26,3 +27,12 @@ k = 50
 max_length = 30
 num_return_sequenecs = 5
 max_step = 500
+device = 'cpu'
+torch.manual_seed(1337)
+if torch.cuda.is_available():
+    device = 'cuda'
+    torch.cuda.manual_seed(1337)
+elif torch.mps.is_available():
+    device = 'mps'
+    torch.mps.manual_seed(1337)
+device_type = torch.device(device).type   # 'cuda:0' -> 'cuda', 'mps' -> 'mps', 'cpu' -> 'cpu'
