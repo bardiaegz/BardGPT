@@ -7,6 +7,12 @@ import torch.nn.functional as F
 import tiktoken
 from tqdm import tqdm
 import time
+import os
+
+log_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'log')
+os.makedirs(log_dir, exist_ok=True)
+log_path = os.path.join(log_dir, 'log.txt')
+log_file = open(log_path, mode='w')
 
 BANNER = r"""
   ____                _  _____ _____ _______ 
@@ -43,6 +49,7 @@ def main() -> None:
         x_gen = prompt.clone()
         last_step = (step == max_step - 1)
         if (step > 0 and step % 100 == 0) or last_step:
+            log_file.write(f'\n\n{'=' * 24} GENERATION {'=' * 24}\n')
             raw_model.eval()
             with torch.inference_mode():
                 while x_gen.size(1) < max_length:
@@ -60,7 +67,9 @@ def main() -> None:
                     x_gen = torch.cat((x_gen, xcol), dim=1)
             for i in range(num_return_sequenecs):
                 decoded = enc.decode(x_gen[i, :max_length].tolist())
+                log_file.write(f'\nSAMPLE {i} -> {decoded}\n')
                 print(f'SAMPLE {i} -> {colors.OKGREEN}{decoded}{colors.ENDC}\n')
+            log_file.write(f'\n{'=' * 60}')
             raw_model.train()
         t0 = time.time()
         x, y = train_loader.next_batch()
@@ -77,6 +86,9 @@ def main() -> None:
         dt = t1 - t0
         token_processed = train_loader.B * train_loader.T
         toksec = token_processed / dt
+        log_file.write(f'\nSTEP: {step:05d} | LOSS: {loss.item():.6f}')
         pbar.set_postfix(loss=f'{loss.item():.6f}', dt=f'{dt*1000:.2f}ms', toksec=f'{toksec:.2f}')
+        log_file.flush()
 
+    log_file.close()
 
