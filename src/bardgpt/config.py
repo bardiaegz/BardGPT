@@ -25,7 +25,7 @@ B = 4
 T = 32
 k = 50
 max_length = 30
-num_return_sequenecs = 5
+num_return_sequences = 5
 max_step = 500
 device = 'cpu'
 torch.manual_seed(1337)

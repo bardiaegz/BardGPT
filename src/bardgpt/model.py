@@ -3,11 +3,12 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-
+# https://arxiv.org/pdf/1706.03762 - Attention Is All You Need
+# https://cdn.openai.com/better-language-models/language_models_are_unsupervised_multitask_learners.pdf - Language Models are Unsupervised Multitask Learners
 class CausalSelfAttention(nn.Module):
     def __init__(self, config):
         super().__init__()
-        assert config.n_embd % config.n_head == 0, f'n_embd ({config.n_embd}) must be divisbile by n_head ({config.n_head})'
+        assert config.n_embd % config.n_head == 0, f'n_embd ({config.n_embd}) must be divisible by n_head ({config.n_head})'
         self.c_attn = nn.Linear(config.n_embd, 3 * config.n_embd)
         self.c_proj = nn.Linear(config.n_embd, config.n_embd)
         self.c_proj.BARDGPT_SCALE_INIT = 1
