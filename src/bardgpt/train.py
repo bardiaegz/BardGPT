@@ -42,7 +42,8 @@ def main() -> None:
         if use_compile:
             model = torch.compile(model)
         optimizer = torch.optim.AdamW(raw_model.parameters(), lr=6e-4)
-        train_loader = DataLoader(B=B, T=T, device=device)
+        train_loader = DataLoader(B=B, T=T, split='train', device=device)
+        val_loader = DataLoader(B=B, T=T, split='val', device=device)
 
         pbar = tqdm(range(max_step), desc='Training BardGPT', colour='#7BC621', dynamic_ncols=True)
         for step in pbar:
@@ -57,7 +58,7 @@ def main() -> None:
                         # https://docs.cloud.google.com/tpu/docs/bfloat16
                         # BrainFloat-16 (1 sign bits - 8 exponent bits (same as float32) - 7 mantissa bits ) -> 16 bits
                         with torch.autocast(device_type=device_type, dtype=torch.bfloat16):
-                            logits, _ = model(x_gen)
+                            logits, _ = raw_model(x_gen)
                         logits = logits[:, -1, :].float()
                         logits[:, enc.n_vocab:] = -float('inf')
                         probs = F.softmax(input=logits, dim=-1)
